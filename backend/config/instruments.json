@@ -1,0 +1,38 @@
+{
+    "piano": {
+      "name": "Acoustic Grand Piano",
+      "program": 0,
+      "family": "Piano"
+    },
+    "electric_guitar": {
+      "name": "Electric Guitar (clean)",
+      "program": 27,
+      "family": "Guitar"
+    },
+    "acoustic_bass": {
+      "name": "Acoustic Bass",
+      "program": 32,
+      "family": "Bass"
+    },
+    "violin": {
+      "name": "Violin",
+      "program": 40,
+      "family": "Strings"
+    },
+    "trumpet": {
+      "name": "Trumpet",
+      "program": 56,
+      "family": "Brass"
+    },
+    "flute": {
+      "name": "Flute",
+      "program": 73,
+      "family": "Woodwinds"
+    },
+    "drums": {
+      "name": "Standard Drum Kit",
+      "program": 0,
+      "family": "Drums",
+      "is_drum": true
+    }
+  }

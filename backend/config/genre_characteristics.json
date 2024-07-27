@@ -1,0 +1,32 @@
+{
+    "pop": {
+      "tempo_range": [90, 130],
+      "common_instruments": ["piano", "electric_guitar", "drums", "bass"],
+      "chord_complexity": "medium",
+      "rhythm_complexity": "medium"
+    },
+    "rock": {
+      "tempo_range": [110, 140],
+      "common_instruments": ["electric_guitar", "bass", "drums"],
+      "chord_complexity": "medium",
+      "rhythm_complexity": "high"
+    },
+    "jazz": {
+      "tempo_range": [80, 140],
+      "common_instruments": ["piano", "trumpet", "acoustic_bass", "drums"],
+      "chord_complexity": "high",
+      "rhythm_complexity": "high"
+    },
+    "classical": {
+      "tempo_range": [60, 120],
+      "common_instruments": ["piano", "violin", "flute"],
+      "chord_complexity": "high",
+      "rhythm_complexity": "medium"
+    },
+    "electronic": {
+      "tempo_range": [120, 160],
+      "common_instruments": ["synthesizer", "drums"],
+      "chord_complexity": "low",
+      "rhythm_complexity": "high"
+    }
+  }

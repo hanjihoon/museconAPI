@@ -1,0 +1,29 @@
+{
+    "app": {
+      "name": "MuseComp",
+      "version": "1.0.0",
+      "debug": false
+    },
+    "audio": {
+      "sample_rate": 44100,
+      "channels": 2,
+      "bit_depth": 16
+    },
+    "composition": {
+      "default_bpm": 120,
+      "min_bpm": 60,
+      "max_bpm": 200,
+      "default_bars": 16
+    },
+    "models": {
+      "melody": "hierdec-mel_16bar",
+      "drums": "nade-drums_2bar_full",
+      "bass": "hierdec-mel_16bar",
+      "chord": "hierdec-trio_16bar"
+    },
+    "paths": {
+      "output": "output/",
+      "models": "assets/models/",
+      "samples": "assets/samples/"
+    }
+  }
