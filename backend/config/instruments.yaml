@@ -1,0 +1,57 @@
+instruments:
+  piano:
+    soundfont: 'UprightPianoKW-20220221.sf2'
+    program: 0
+  acoustic_bass:
+    soundfont: 'FingerBassYR-20190930.sf2'
+    program: 32
+  electric_bass:
+    soundfont: ''
+    program: 33
+  violin:
+    soundfont: 'Valiant_Violin_V2.sf2'
+    program: 40
+  cello:
+    soundfont: ''
+    program: 42
+  trumpet:
+    soundfont: ''
+    program: 56
+  tenor_saxophone:
+    soundfont: 'TenorSaxophone-20200717.sf2'
+    program: 65
+  flute:
+    soundfont: ''
+    program: 73
+  classic_guitar:
+    soundfont: 'SpanishClassicalGuitar-20190618.sf2'
+    program: 24
+  electric_guitar:
+    soundfont: 'EGuitarFSBS-bridge-clean-20220911.sf2'
+    program: 27
+  drum_kit:
+    soundfont: 'Alesis_D4_Drum_Module.sf2'
+    program: 0
+  timpani:
+    soundfont: 'Timpani-20201121.sf2'
+    program: 0
+  ocarina:
+    soundfont: 'Ocarina-20200726.sf2'
+    program: 0
+  recorder:
+    soundfont: 'Recorder-20201205.sf2'
+    program: 0
+  kalimba:
+    soundfont: 'Kalimba-20190723.sf2'
+    program: 0
+  clarinet:
+    soundfont: 'KalClarinet-20190818.sf2'
+    program: 0
+  harp:
+    soundfont: 'ConcertHarp-20200702.sf2'
+    program: 0
+  crisis_general:
+    soundfont: 'CrisisGeneralMidi301.sf2'
+    program: 0
+
+default_instrument: 'piano'
