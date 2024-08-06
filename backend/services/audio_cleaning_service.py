@@ -3,6 +3,9 @@ import numpy as np
 from pydub import AudioSegment
 from scipy.signal import butter, lfilter
 import pywt
+from scipy.optimize import minimize
+from pystoi import stoi
+from pesq import pesq
 
 class AudioCleaningService:
     def __init__(self):
@@ -151,3 +154,18 @@ class AudioCleaningService:
         comparison.export(output_file, format="wav")
         
         self.logger.info(f"비교 오디오 길이: {len(comparison)}ms")
+
+    def optimize_parameters(self, audio_data, sr):
+        def objective(params):
+            cleaned_audio = self.clean_audio_with_params(audio_data, sr, params)
+            return -self.calculate_audio_quality(cleaned_audio)
+
+        initial_params = [2000, 5, 'db4', 1]  # 초기 파라미터 값
+        result = minimize(objective, initial_params, method='Nelder-Mead')
+        return result.x
+    
+
+    def calculate_audio_quality(self, clean_audio, noisy_audio, sr):
+        stoi_score = stoi(clean_audio, noisy_audio, sr, extended=False)
+        pesq_score = pesq(sr, clean_audio, noisy_audio, 'nb')
+        return (stoi_score + pesq_score) / 2

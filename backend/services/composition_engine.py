@@ -1,25 +1,18 @@
 import logging
 from note_seq.protobuf import music_pb2
 import os
-from services.audio_enhancement_service import AudioEnhancementService
-from services.advance.chord_progression_service import ChordProgressionService
-from services.advance.rhythm_pattern_service import RhythmPatternService
-from services.advance.bassline_service import BasslineService
-from services.advance.drum_pattern_service import DrumPatternService
-from services.advance.music_structure_service import MusicStructureService
+from backend.services.audio_enhancement_service import AudioEnhancementService
+from backend.services.audio_processing_service import AudioProcessingService
+from backend.services.audio_cleaning_service import AudioCleaningService
+from pydub import AudioSegment
 from note_seq import sequences_lib
 
 class CompositionEngine:
-    def __init__(self, melody_service, audio_service):
+    def __init__(self):
         self.logger = logging.getLogger(__name__)
-        self.melody_service = melody_service
-        self.audio_service = audio_service
+        self.audio_service = AudioProcessingService()
         self.enhancement_service = AudioEnhancementService()
-        self.chord_service = ChordProgressionService()
-        self.rhythm_service = RhythmPatternService()
-        self.bassline_service = BasslineService()
-        self.drum_service = DrumPatternService()
-        self.structure_service = MusicStructureService()
+        self.cleaning_service = AudioCleaningService()
 
     def analyze_melody(self, melody):
         notes = [note.pitch for note in melody.notes]
@@ -70,8 +63,8 @@ class CompositionEngine:
         combined_sequence = self.combine_melodies([original_melody, new_melody], ['piano', new_instrument])
         midi_path = self.melody_service.create_midi(combined_sequence)
         
-        original_audio = self.audio_service.midi_to_audio(midi_path, 'piano')
-        new_audio = self.audio_service.midi_to_audio(midi_path, new_instrument)
+        original_audio = self.audio_service.midi_to_wav(midi_path, 'piano')
+        new_audio = self.audio_service.midi_to_wav(midi_path, new_instrument)
         
         new_audio = new_audio - 3  # 3dB 낮춤
         combined_audio = original_audio.overlay(new_audio)
@@ -103,8 +96,8 @@ class CompositionEngine:
         combined_sequence = self.combine_melodies([base_melody, additional_melody], [base_style, additional_instrument])
         midi_path = self.melody_service.create_midi(combined_sequence)
         
-        base_audio = self.audio_service.midi_to_audio(midi_path, base_style)
-        additional_audio = self.audio_service.midi_to_audio(midi_path, additional_instrument)
+        base_audio = self.audio_service.midi_to_wav(midi_path, base_style)
+        additional_audio = self.audio_service.midi_to_wav(midi_path, additional_instrument)
         
         # 볼륨 조정 및 오디오 합성
         base_audio = base_audio - 3
@@ -138,7 +131,7 @@ class CompositionEngine:
         self.logger.info("믹싱 설정 적용 중...")
 
         # MIDI 데이터를 오디오로 변환
-        audio = self.midi_to_audio(midi_data)  # AudioSegment 객체
+        audio = self.midi_to_wav(midi_data)  # AudioSegment 객체
 
         # 믹싱 설정 적용
         for effect, params in mix_settings.items():
@@ -188,39 +181,3 @@ class CompositionEngine:
 
         self.logger.info("곡 편집 완료")
         return composition
-
-
-    # advanced composition
-
-    
-    def _compose_basic(self, genre, length):
-        melody = self.melody_service.generate_melody(genre, length)
-        return melody
-
-    def compose(self, genre, length, complexity='basic'):
-        if complexity == 'basic':
-            return self._compose_basic(genre, length)
-        elif complexity == 'advanced':
-            return self._compose_advanced(genre, length)
-        else:
-            raise ValueError("Invalid complexity level")
-
-
-    def _compose_advanced(self, genre, length):
-        structure = self.structure_service.generate_structure(genre, length)
-        chord_progression = self.chord_service.generate_chord_progression(genre, length)
-        melody = self.melody_service.generate_melody(genre, length)
-        rhythm = self.rhythm_service.generate_rhythm_pattern(genre, length)
-        bassline = self.bassline_service.generate_bassline(chord_progression, genre)
-        drums = self.drum_service.generate_drum_pattern(genre, length)
-
-        composition = self._combine_elements(structure, chord_progression, melody, rhythm, bassline, drums)
-        return composition
-
-    def _combine_elements(self, structure, chords, melody, rhythm, bassline, drums):
-        combined = music_pb2.NoteSequence()
-        # 여기서 모든 요소를 하나의 NoteSequence로 결합
-        # 각 요소의 시작 시간과 종료 시간을 구조에 맞게 조정
-        # ...
-
-        return combined

@@ -20,3 +20,7 @@ gunicorn
 PyWavelets
 numba=0.49.1
 numpy=1.22.0
+music21
+memory_profiler
+pystoi
+pesq

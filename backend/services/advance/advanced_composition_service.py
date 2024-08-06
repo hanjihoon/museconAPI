@@ -8,15 +8,29 @@ from note_seq.protobuf import music_pb2
 from magenta.models.music_vae import configs
 from magenta.models.music_vae import TrainedModel
 from magenta.models.music_vae import trained_model
+from magenta.models.performance_rnn import performance_sequence_generator
 from backend.services.audio_processing_service import AudioProcessingService
 from pydub import AudioSegment
 from note_seq import sequences_lib
 import copy
 from dotenv import load_dotenv
 import yaml
+import music21
+from backend.services.advance.music_generator import MusicGenerator
 
 
 class AdvancedCompositionService:
+
+    GENRES = [
+        "classical", "jazz", "rock", "pop", "electronic",
+        "hip_hop", "r_and_b", "country", "folk", "latin"
+    ]
+    
+    FEELS = [
+        "happy", "sad", "energetic", "calm", "mysterious",
+        "romantic", "nostalgic", "epic", "playful", "dark"
+    ]
+
     def __init__(self):
         self.models = {}
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -30,27 +44,49 @@ class AdvancedCompositionService:
 
         self.instrument_config = self.load_instrument_config()
 
+
     def initialize_models(self):
         model_configs = {
-            'short_melody': ('cat-mel_2bar_big.tar', configs.CONFIG_MAP['cat-mel_2bar_big']),
-            'long_melody': ('hierdec-mel_16bar.tar', configs.CONFIG_MAP['hierdec-mel_16bar']),
-            'trio': ('hierdec-trio_16bar.tar', configs.CONFIG_MAP['hierdec-trio_16bar']),
-            'drums': ('nade-drums_2bar_full.tar', configs.CONFIG_MAP['nade-drums_2bar_full']),
-            'groove': ('groovae_2bar_humanize.tar', configs.CONFIG_MAP['groovae_2bar_humanize'])
+            # 'short_melody': ('cat-mel_2bar_big.tar', configs.CONFIG_MAP['cat-mel_2bar_big']),
+            'long_melody': ('hierdec-mel_16bar.ckpt', configs.CONFIG_MAP['hierdec-mel_16bar']),
+            # 'trio': ('hierdec-trio_16bar.tar', configs.CONFIG_MAP['hierdec-trio_16bar']),
+            # 'drums': ('nade-drums_2bar_full.tar', configs.CONFIG_MAP['nade-drums_2bar_full']),
+            # 'groove': ('groovae_2bar_humanize.tar', configs.CONFIG_MAP['groovae_2bar_humanize'])
         }
 
         for model_name, (file_name, config) in model_configs.items():
             try:
-                model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'assets', 'models', file_name)
+                model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'assets', 'models', 'cat-mel_2bar_big.ckpt')
                 
+                config = self.configure_data_converter(config)
+
                 self.models[model_name] = TrainedModel(
                     config,
-                    batch_size=1,
+                    batch_size=8,
                     checkpoint_dir_or_path=model_path
                 )
                 self.logger.info(f"{model_name} 모델 초기화 완료")
             except Exception as e:
                 self.logger.error(f"{model_name} 모델 초기화 중 오류 발생: {str(e)}")
+
+    @staticmethod
+    def configure_data_converter(config):
+        if not hasattr(config, 'data_converter'):
+            raise AttributeError("Config object doesn't have 'data_converter' attribute")
+
+        dc = config.data_converter
+
+        # steps_per_quarter 설정
+        if not hasattr(dc, 'steps_per_quarter') or dc.steps_per_quarter is None:
+            dc.steps_per_quarter = 480  # MIDI 표준값으로 직접 설정
+        else:
+            dc.steps_per_quarter = max(dc.steps_per_quarter, 480)  # 기존 값과 480 중 큰 값 사용
+
+        # steps_per_bar 설정
+        if not hasattr(dc, 'steps_per_bar') or dc.steps_per_bar is None:
+            dc.steps_per_bar = dc.steps_per_quarter * 4  # 4/4 박자 기준
+
+        return config
 
     def get_model_settings(self, model_name):
         model = self.models.get(model_name)
@@ -60,15 +96,12 @@ class AdvancedCompositionService:
         config = model._config
         data_converter = config.data_converter
         
-        settings = {
-            'steps_per_quarter': getattr(data_converter, 'steps_per_quarter', None),
-            'steps_per_bar': getattr(data_converter, 'steps_per_bar', None),
-            'slice_bars': getattr(data_converter, 'slice_bars', None),
-            'max_tensors_per_input': getattr(data_converter, 'max_tensors_per_input', None),
-            'max_num_steps': getattr(data_converter, 'max_num_steps', None),
-            'input_depth': getattr(data_converter, 'input_depth', None),
-            'input_dtype': getattr(data_converter, 'input_dtype', None),
-        }
+        settings = {}
+        for attr in ['steps_per_quarter', 'steps_per_bar', 'slice_bars', 'max_tensors_per_input', 'max_num_steps', 'input_depth', 'input_dtype']:
+            if hasattr(data_converter, attr):
+                settings[attr] = getattr(data_converter, attr)
+            else:
+                settings[attr] = None
         
         self.logger.info(f"Model '{model_name}' settings: {settings}")
         return settings
@@ -81,6 +114,43 @@ class AdvancedCompositionService:
         instruments = self.instrument_config['instruments']
         default = self.instrument_config['default_instrument']
         return instruments.get(instrument_name, instruments[default])
+    
+    def apply_genre_and_feel(self, stream, genre, feel):
+        genre_method = getattr(self, f"apply_{genre}_style", None)
+        if genre_method:
+            genre_method(stream)
+        
+        feel_method = getattr(self, f"apply_{feel}_feel", None)
+        if feel_method:
+            feel_method(stream)
+        
+        return stream
+
+    def notesequence_to_stream(self, sequence):
+        """
+        NoteSequence를 music21 Stream으로 변환합니다.
+        """
+        stream = music21.stream.Stream()
+        for note in sequence.notes:
+            n = music21.note.Note(note.pitch)
+            n.quarterLength = (note.end_time - note.start_time) / 0.5  # 가정: 4분음표 = 0.5초
+            n.volume.velocity = note.velocity
+            stream.insert(note.start_time, n)
+        return stream
+
+    def stream_to_notesequence(self, stream):
+        """
+        music21 Stream을 NoteSequence로 변환합니다.
+        """
+        sequence = music_pb2.NoteSequence()
+        for element in stream.recurse().notesAndRests:
+            if isinstance(element, music21.note.Note):
+                note = sequence.notes.add()
+                note.pitch = element.pitch.midi
+                note.start_time = element.offset * 0.5
+                note.end_time = note.start_time + (element.duration.quarterLength * 0.5)
+                note.velocity = int(element.volume.velocity)
+        return sequence
 
     def repeat_sequence(self, sequence, repeat_count):
         """
@@ -148,7 +218,7 @@ class AdvancedCompositionService:
         
         return sequence
 
-    def generate_composition(self, composition_type, num_outputs=3, temperature=0.5, length=256, bpm=None, min_pitch=60, max_pitch=84, instrument=None):
+    def generate_composition(self, composition_type, num_outputs=3, temperature=0.5, length=256, bpm=None, min_pitch=60, max_pitch=84, instrument=None, genre=None, feel=None):
         """
         지정된 유형의 음악 구성 요소를 생성합니다.
 
@@ -169,31 +239,52 @@ class AdvancedCompositionService:
             bpm = self.DEFAULT_BPM
         bpm = self.validate_bpm(bpm)
 
+
+        # 장르, 느낌 유효성 검사
+        # if genre not in MusicGenerator.GENRES:
+        #     raise ValueError(f"Invalid genre. Choose from: {', '.join(MusicGenerator.GENRES)}")
+        # if feel not in MusicGenerator.FEELS:
+        #     raise ValueError(f"Invalid feel. Choose from: {', '.join(MusicGenerator.FEELS)}")
+
         try:
             model = self.models.get(composition_type)
             if model is None:
-                raise ValueError(f"모델 '{composition_type}'이(가) 초기화되지 않았거나 사용할 수 없습니다.")
-
-            # groove 모델에 대한 특별한 처리
-            if composition_type == 'groove':
-                adjusted_length = 32  # groove 모델은 2마디(32개 스텝)를 기본으로 함
-                adjusted_temperature = max(0.1, min(1.0, temperature))  # 온도 범위 제한
-            else:
-                adjusted_length = length
-                adjusted_temperature = temperature
-
-            self.logger.info(f"{composition_type} 생성 시작 - 출력 수: {num_outputs}, 길이: {adjusted_length}, 온도: {adjusted_temperature}, BPM: {bpm}")
+                self.logger.error(f"모델 '{composition_type}'이(가) 초기화되지 않았습니다.")
+                self.initialize_models()  # 모델 재초기화 시도
+                model = self.models.get(composition_type)
+                if model is None:
+                    raise ValueError(f"모델 '{composition_type}'을(를) 초기화할 수 없습니다.")
 
             settings = self.get_model_settings(composition_type)
             steps_per_quarter = settings['steps_per_quarter']
             steps_per_bar = settings['steps_per_bar']
 
             valid_sequences = []
-            max_attempts = 5  # 최대 시도 횟수
+            max_attempts = 10  # 최대 시도 횟수
 
             for _ in range(max_attempts):
-                sequences = model.sample(n=num_outputs, length=adjusted_length, temperature=adjusted_temperature)
                 
+                if composition_type in ['long_melody', 'short_melody']:
+                    melody_length = length
+                elif composition_type in ['drums', 'groove']:
+                    melody_length = length // 2  # 멜로디의 절반 길이로 설정
+
+                sequences = model.sample(n=num_outputs, length=melody_length, temperature=temperature)
+
+                if composition_type == 'groove':
+                    processed_sequences = []
+                    for i, sequence in enumerate(sequences):
+                        try:
+                            processed_sequence = self.process_groove_output(sequence, bpm or self.DEFAULT_BPM)
+                            processed_sequences.append(processed_sequence)
+                        except Exception as e:
+                            self.logger.error(f"Groove 처리 중 오류 발생 (시퀀스 {i+1}): {str(e)}")
+                    sequences = processed_sequences
+
+                if not sequences:
+                    self.logger.warning(f"시도 {_ + 1}: 생성된 시퀀스가 없습니다. 재시도 중...")
+                    continue
+
                 for sequence in sequences:
                     if sequence.notes:
                         # MIDI 데이터 검증 및 수정
@@ -206,7 +297,7 @@ class AdvancedCompositionService:
                             note.velocity = min(note.velocity * 2, 127)
                             
                             # 시퀀스 유형 및 악기 설정
-                            if composition_type in ['drums', 'groove']:
+                            if composition_type == 'drums':
                                 note.is_drum = True
                                 note.instrument = 9  # MIDI 채널 10 (0-based index이므로 9)
                                 instrument_info = self.audio_service.get_instrument_info('Standard drum kit')
@@ -215,49 +306,77 @@ class AdvancedCompositionService:
                                 instrument_info = self.audio_service.get_instrument_info(instrument or composition_type)
                                 
                                 # MIDI 채널 및 프로그램 설정
-                                if composition_type == 'melody':
-                                    note.instrument = 0  # MIDI 채널 1
-                                elif composition_type == 'bass':
-                                    note.instrument = 1  # MIDI 채널 2
-                                    note.pitch = max(28, min(note.pitch, 60))  # 베이스 음역 제한 (E1 ~ C3)
-                                else:
-                                    note.instrument = 2  # MIDI 채널 3 (필요에 따라 조정)
+                                # if composition_type in ('long_melody','short_melody'):
+                                #     note.instrument = 0  # MIDI 채널 1
+                                # elif composition_type == 'bass':
+                                #     note.instrument = 1  # MIDI 채널 2
+                                #     note.pitch = max(28, min(note.pitch, 60))  # 베이스 음역 제한 (E1 ~ C3)
+                                # else:
+                                #     note.instrument = 2  # MIDI 채널 3 (필요에 따라 조정)
                                 
                                 note.program = instrument_info['program']
                                 
                                 # 피치 조정 (드럼 제외)
                                 note.pitch = max(min_pitch, min(note.pitch, max_pitch))
 
-                        # BPM 설정
-                        while sequence.tempos:
-                            sequence.tempos.pop()
-                        sequence.tempos.add(qpm=bpm)
+                         # BPM 설정
+                        if not sequence.tempos:
+                            tempo = sequence.tempos.add()
+                            tempo.qpm = bpm if bpm is not None else self.DEFAULT_BPM
+                            tempo.time = 0
+                        else:
+                            sequence.tempos[0].qpm = bpm if bpm is not None else self.DEFAULT_BPM
 
                         # ticks_per_quarter 설정
-                        if steps_per_quarter is not None:
-                            sequence.ticks_per_quarter = steps_per_quarter * 220 // 4
-                        else:
-                            sequence.ticks_per_quarter = 220  # 기본값 사용
+                        sequence.ticks_per_quarter = 480  # 표준값으로 설정
+                        # 노트의 시작 시간과 종료 시간 조정
+                        ratio = 480 / 220
+                        for note in sequence.notes:
+                            note.start_time *= ratio
+                            note.end_time *= ratio
+                        sequence.total_time *= ratio
 
                         # 프로그램 변경 및 뱅크 선택 메시지 추가
-                        if composition_type not in ['drums', 'groove']:
-                            control_change = sequence.control_changes.add()
-                            control_change.time = 0
-                            control_change.control_number = 0  # Bank select
-                            control_change.control_value = instrument_info['bank']
+                        # if composition_type != 'drums':
+                        #     control_change = sequence.control_changes.add()
+                        #     control_change.time = 0
+                        #     control_change.control_number = 0  # Bank select
+                        #     control_change.control_value = instrument_info['bank']
 
-                            program_change = sequence.control_changes.add()
-                            program_change.time = 0
-                            program_change.control_number = 255  # Program change
-                            program_change.control_value = instrument_info['program']
+                        #     program_change = sequence.control_changes.add()
+                        #     program_change.time = 0
+                        #     program_change.control_number = 255  # Program change
+                        #     program_change.control_value = instrument_info['program']
 
-                        # 총 시간 계산 및 설정
-                        sequence.total_time = max(note.end_time for note in sequence.notes)
+                        if self.validate_sequence(sequence):
+                            self.log_notesequence(sequence, f"Generated {composition_type} {len(valid_sequences)+1}")
+                            valid_sequences.append(sequence)
+
+                        # 총 시간 조정
+                        if sequence.total_time <= 0:
+                            sequence.total_time = max(note.end_time for note in sequence.notes)
+
+                        
+                        # 장르와 느낌 적용
+                        # try:
+                        #     self.logger.info(f"{composition_type}에 '{genre}' 장르와 '{feel}' 느낌 적용 시작")
+                        #     original_note_count = len(sequence.notes)
+                        #     sequence = MusicGenerator.apply_genre_and_feel(sequence, genre, feel)
+                        #     new_note_count = len(sequence.notes)
+                        #     self.logger.info(f"장르와 느낌 적용 완료. 원본 음표 수: {original_note_count}, 새 음표 수: {new_note_count}")
+                        #     if original_note_count == new_note_count:
+                        #         self.logger.warning("장르와 느낌 적용 후 음표 수가 변경되지 않음")
+                        # except Exception as e:
+                        #     self.logger.error(f"장르와 느낌 적용 중 오류 발생: {str(e)}")
+                        #     self.logger.exception("상세 오류 정보:")
 
                         self.log_notesequence(sequence, f"Generated {composition_type} {len(valid_sequences)+1}")
                         self.logger.info(f"생성된 {composition_type} {len(valid_sequences)+1} 정보: 음표 수: {len(sequence.notes)}, 총 시간: {sequence.total_time}, BPM: {bpm}")
                         
-                        valid_sequences.append(sequence)
+                        if self.validate_sequence(sequence):
+                            valid_sequences.append(sequence)
+                        else:
+                            self.logger.warning(f"유효하지 않은 시퀀스가 생성되었습니다: {sequence}")
                     else:
                         self.logger.warning(f"빈 {composition_type} 시퀀스가 생성되었습니다.")
 
@@ -272,6 +391,7 @@ class AdvancedCompositionService:
 
         except Exception as e:
             self.logger.error(f"{composition_type} 생성 중 오류 발생: {str(e)}")
+            self.logger.exception("상세 오류 정보:")
             raise
 
     def apply_groove(self, drum_sequence):
@@ -534,9 +654,10 @@ class AdvancedCompositionService:
     def log_notesequence(self, sequence, description):
         self.logger.info(f"{description}:")
         self.logger.info(f"Total time: {sequence.total_time}")
-        self.logger.info(f"Tempo: {sequence.tempos[0].qpm}")
-        for i, note in enumerate(sequence.notes[:10]):  # 처음 10개 음표만 출력
-            self.logger.info(f"Note {i+1}: pitch={note.pitch}, start_time={note.start_time}, end_time={note.end_time}, velocity={note.velocity}")
+        self.logger.info(f"Tempo: {sequence.tempos[0].qpm if sequence.tempos else 'Not specified'}")
+        self.logger.info(f"Total notes: {len(sequence.notes)}")
+        for i, note in enumerate(sequence.notes[:10]):
+            self.logger.info(f"Note {i+1}: pitch={note.pitch}, start_time={note.start_time:.3f}, end_time={note.end_time:.3f}, velocity={note.velocity}")
         if len(sequence.notes) > 10:
             self.logger.info("...")
 
@@ -1029,15 +1150,17 @@ class AdvancedCompositionService:
             adjusted_melody.tempos.pop()
         adjusted_melody.tempos.add(qpm=target_bpm)
 
-        for note in adjusted_melody.notes:
-            note.start_time *= tempo_ratio
-            note.end_time *= tempo_ratio
+        ticks_ratio = 480 / adjusted_melody.ticks_per_quarter
+        adjusted_melody.ticks_per_quarter = 480
 
-        adjusted_melody.total_time *= tempo_ratio
+        for note in adjusted_melody.notes:
+            note.start_time *= tempo_ratio * ticks_ratio
+            note.end_time *= tempo_ratio * ticks_ratio
+
+        adjusted_melody.total_time *= tempo_ratio * ticks_ratio
 
         return adjusted_melody
     
-
 
     def save_midi_with_instruments(self, sequence, filename, instruments):
         """
@@ -1082,19 +1205,23 @@ class AdvancedCompositionService:
             music_pb2.NoteSequence: 결합된 시퀀스
         """
         self.logger.info(f"시퀀스 결합 시작: 입력 시퀀스 수: {len(sequences)}")
-        combined = music_pb2.NoteSequence()
+        combined_sequence = music_pb2.NoteSequence()
+    
         for i, seq in enumerate(sequences):
-            combined.notes.extend(seq.notes)
-            self.logger.info(f"시퀀스 {i+1} 추가: 음표 수 {len(seq.notes)}")
+            for note in seq.notes:
+                new_note = combined_sequence.notes.add()
+                new_note.MergeFrom(note)
+                new_note.instrument = i
+                new_note.program = i
+                if i == 2:  # 드럼 트랙 (인덱스에 따라 조정 필요)
+                    new_note.velocity = min(127, int(note.velocity * 1.5))  # 드럼 볼륨 증가
         
-        combined.total_time = max(seq.total_time for seq in sequences)
+        combined_sequence.total_time = max(seq.total_time for seq in sequences)
         
-        # 템포 정보 복사 (모든 시퀀스가 같은 템포를 가진다고 가정)
         if sequences and sequences[0].tempos:
-            combined.tempos.extend(sequences[0].tempos)
+            combined_sequence.tempos.extend(sequences[0].tempos)
         
-        self.logger.info(f"시퀀스 결합 완료: 총 음표 수 {len(combined.notes)}, 총 시간 {combined.total_time:.2f}초")
-        return combined
+        return combined_sequence
     
     def validate_midi_data(self, sequence):
         """
@@ -1125,6 +1252,70 @@ class AdvancedCompositionService:
             self.logger.debug(f"Control Change {i}: number={control.control_number}, value={control.control_value}, time={control.time}, instrument={control.instrument}")
         for i, tempo in enumerate(sequence.tempos):
             self.logger.debug(f"Tempo {i}: qpm={tempo.qpm}, time={tempo.time}")
+
+    def extend_sequence(self, sequence, target_length):
+        """
+        주어진 시퀀스를 목표 길이에 맞게 반복 확장합니다.
+        """
+        original_length = sequence.total_time
+        repetitions = int(target_length / original_length) + 1
+
+        extended_sequence = music_pb2.NoteSequence()
+        extended_sequence.CopyFrom(sequence)
+
+        for i in range(1, repetitions):
+            for note in sequence.notes:
+                new_note = extended_sequence.notes.add()
+                new_note.CopyFrom(note)
+                new_note.start_time += i * original_length
+                new_note.end_time += i * original_length
+
+        extended_sequence.total_time = target_length
+        return extended_sequence
+    
+    def validate_sequence(self, sequence):
+        if not sequence.notes:
+            self.logger.warning("생성된 시퀀스에 음표가 없습니다.")
+            return False
+        if not sequence.tempos:
+            self.logger.warning("생성된 시퀀스에 템포 정보가 없습니다.")
+            # 템포 정보 추가
+            tempo = sequence.tempos.add()
+            tempo.qpm = self.DEFAULT_BPM
+            tempo.time = 0
+        if sequence.total_time <= 0:
+            self.logger.warning("생성된 시퀀스의 총 시간이 0 이하입니다.")
+            return False
+        if len(sequence.notes) < 2:  # 최소 2개 이상의 음표가 있어야 함
+            self.logger.warning("생성된 시퀀스의 음표 수가 너무 적습니다.")
+            return False
+        return True
+    
+    def process_groove_output(self, sequence, bpm):
+        # groove 모델의 출력을 2마디(32스텝) 단위로 반복
+        original_notes = list(sequence.notes)
+        new_notes = []
+        
+        bar_duration = 4 * 60 / bpm  # 4/4 박자 기준, 1마디 길이(초)
+        total_duration = 2 * bar_duration  # 2마디
+        
+        current_time = 0
+        while current_time < total_duration:
+            for note in original_notes:
+                new_note = music_pb2.NoteSequence.Note()
+                new_note.CopyFrom(note)
+                new_note.start_time += current_time
+                new_note.end_time += current_time
+                new_notes.append(new_note)
+            current_time += bar_duration
+
+        del sequence.notes[:]  # 기존 노트 모두 삭제
+        sequence.notes.extend(new_notes)  # 새로운 노트 추가
+        sequence.total_time = total_duration
+
+        return sequence
+    
+
 # 메인 스크립트 (예시)
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
@@ -1134,52 +1325,47 @@ if __name__ == "__main__":
     os.makedirs(output_dir, exist_ok=True)
     
     try:
-        # BPM 지정
-        bpm = 120  # 예시로 180 BPM 사용
+        # print("Available genres:", ", ".join(service.GENRES))
+        # genre = input("원하는 장르를 입력하세요: ")
+        
+        # print("Available feels:", ", ".join(service.FEELS))
+        # feel = input("원하는 느낌을 입력하세요: ")
+        
+        # bpm = int(input("BPM을 입력하세요 (60-180): "))
+        # genre = 'jazz'
+        # feel = 'sad'
+        bpm = 220
         
         instruments = {
-            'long_melody': 'Grand piano',
-            'groove': 'Acoustic bass',
-            'drums': 'Standard drum kit'
+            'melody': 'Grand piano',
+            'bass': 'Standard drum kit',
+            'drums': 'Standard drum kit',
+            'groove': 'Standard drum kit'
         }
         
-        individual_sequences = {}
-        
-        for name, instrument in instruments.items():
-            sequences = service.generate_composition(
-                name, 
-                num_outputs=1, 
-                temperature=0.7 if name != 'drums' else 0.6,
-                length=256, 
-                bpm=bpm, 
-                instrument=instrument
-            )
-            
-            if sequences and len(sequences) > 0:
-                sequence = sequences[0]
-                individual_sequences[name] = sequence
-                
-                midi_path, wav_path = service.save_midi(sequence, f'{output_dir}\{name}', {name: instrument})
-                print(f"생성된 {name} 파일: MIDI - {midi_path}, WAV - {wav_path}")
-            else:
-                print(f"{name}에 대한 유효한 시퀀스가 생성되지 않았습니다.")
-        
-        if len(individual_sequences) == 3:  # melody, bass, drums가 모두 생성되었는지 확인
-            # 전체 시퀀스 결합
-            combined_sequence = service.combine_sequences(*individual_sequences.values())
-            
-            # 결합된 시퀀스 저장
-            midi_path, wav_path = service.save_midi(combined_sequence, f'{output_dir}\combined_composition', instruments)
-            print(f"생성된 결합 파일: MIDI - {midi_path}, WAV - {wav_path}")
-        else:
-            print("일부 악기의 시퀀스가 생성되지 않아 결합을 수행할 수 없습니다.")
-        
-        # 전체 시퀀스 결합
-        combined_sequence = service.combine_sequences(*individual_sequences.values())
-        
-        # 결합된 시퀀스 저장
-        midi_path, wav_path = service.save_midi(combined_sequence, f'{output_dir}\combined_composition', instruments)
-        print(f"생성된 결합 파일: MIDI - {midi_path}, WAV - {wav_path}")
+        # long_melody 생성
+        melody_sequence = service.generate_composition('long_melody', num_outputs=1, length=2000, temperature=0.1, bpm=bpm, min_pitch=48, max_pitch=96, instrument='Grand piano')[0]
+        melody_length = melody_sequence.total_time
+        melody_midi_path, melody_wav_path = service.save_midi(melody_sequence, os.path.join(output_dir, 'long_melody_composition'), instruments)
+        print(f"멜로디 파일 생성: MIDI - {melody_midi_path}, WAV - {melody_wav_path}")
+
+        # # drums 생성
+        # drums_sequence = service.generate_composition('drums', num_outputs=1, length=1024, temperature=0.7, bpm=bpm, min_pitch=48, max_pitch=96, instrument='Standard drum kit', genre=genre, feel=feel)[0]
+        # drums_midi_path, drums_wav_path = service.save_midi(drums_sequence, os.path.join(output_dir, 'drums_composition'), instruments)
+        # print(f"드럼 파일 생성: MIDI - {drums_midi_path}, WAV - {drums_wav_path}")
+
+        # # groove 생성
+        # groove_sequence = service.generate_composition('short_melody', num_outputs=1, length=1024, temperature=0.7, bpm=bpm, min_pitch=48, max_pitch=96, instrument='Clarinet', genre=genre, feel=feel)[0]
+        # groove_midi_path, groove_wav_path = service.save_midi(groove_sequence, os.path.join(output_dir, 'short_melody_composition'), instruments)
+        # print(f"그루브 파일 생성: MIDI - {groove_midi_path}, WAV - {groove_wav_path}")
+
+        # # 모든 시퀀스 결합
+        # combined_sequence = service.combine_sequences(melody_sequence, drums_sequence, groove_sequence)
+
+        # MIDI 및 WAV 파일 저장
+        # midi_path, wav_path = service.save_midi(combined_sequence, 'backend/output/combined_composition', instruments)
+        # print(f"생성된 결합 파일: MIDI - {midi_path}, WAV - {wav_path}")
+
     except ValueError as ve:
         print(f"값 오류: {str(ve)}")
     except AttributeError as ae:

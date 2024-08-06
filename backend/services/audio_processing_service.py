@@ -47,94 +47,16 @@ class AudioProcessingService:
                 soundfonts[instrument_name.lower()] = os.path.join(self.soundfont_dir, file)
         return soundfonts
 
-    def get_instrument_program(self, instrument):
-        instruments = self.instrument_config['instruments']
-        default_instrument = self.instrument_config['default_instrument']
-        return instruments.get(instrument.lower(), default_instrument)
-
     def load_gm_presets(self):
+        with open('backend/config/gm_presets.yaml', 'r') as file:
+            return yaml.safe_load(file)
+
+    def get_instrument_info(self, instrument_name):
+        preset = self.gm_presets.get(instrument_name, self.gm_presets['Grand piano'])
         return {
-            'Grand piano': {'program': 0, 'bank': 0},
-            'Bright grand piano': {'program': 1, 'bank': 0},
-            'Electric grand piano': {'program': 2, 'bank': 0},
-            'Honky tonk': {'program': 3, 'bank': 0},
-            'Electric piano 01': {'program': 4, 'bank': 0},
-            'Electric piano 02': {'program': 5, 'bank': 0},
-            'Harpsichord': {'program': 6, 'bank': 0},
-            'Clavinet': {'program': 7, 'bank': 0},
-            'Celesta': {'program': 8, 'bank': 0},
-            'Glockenspiel': {'program': 9, 'bank': 0},
-            'Music box': {'program': 10, 'bank': 0},
-            'Vibraphone': {'program': 11, 'bank': 0},
-            'Marimba': {'program': 12, 'bank': 0},
-            'Xylophone': {'program': 13, 'bank': 0},
-            'Tubular bells': {'program': 14, 'bank': 0},
-            'Dulcimer': {'program': 15, 'bank': 0},
-            'Hammond organ': {'program': 16, 'bank': 0},
-            'Percussive organ': {'program': 17, 'bank': 0},
-            'Rock organ': {'program': 18, 'bank': 0},
-            'Church organ': {'program': 19, 'bank': 0},
-            'Reed organ': {'program': 20, 'bank': 0},
-            'Accordion': {'program': 21, 'bank': 0},
-            'Harmonica': {'program': 22, 'bank': 0},
-            'Tango accordion': {'program': 23, 'bank': 0},
-            'Nylon guitar': {'program': 24, 'bank': 0},
-            'Steel guitar': {'program': 25, 'bank': 0},
-            'Jazz guitar': {'program': 26, 'bank': 0},
-            'Clean guitar': {'program': 27, 'bank': 0},
-            'Muted guitar': {'program': 28, 'bank': 0},
-            'Overdriven guitar': {'program': 29, 'bank': 0},
-            'Distorted guitar': {'program': 30, 'bank': 0},
-            'Guitar harmonics': {'program': 31, 'bank': 0},
-            'Acoustic bass': {'program': 32, 'bank': 0},
-            'Finger bass': {'program': 33, 'bank': 0},
-            'Pick bass': {'program': 34, 'bank': 0},
-            'Fretless bass': {'program': 35, 'bank': 0},
-            'Slap bass 01': {'program': 36, 'bank': 0},
-            'Slap bass 02': {'program': 37, 'bank': 0},
-            'Synth bass 01': {'program': 38, 'bank': 0},
-            'Synth bass 02': {'program': 39, 'bank': 0},
-            'Violin': {'program': 40, 'bank': 0},
-            'Viola': {'program': 41, 'bank': 0},
-            'Cello': {'program': 42, 'bank': 0},
-            'Contrabass': {'program': 43, 'bank': 0},
-            'Tremolo strings': {'program': 44, 'bank': 0},
-            'Pizzicato strings': {'program': 45, 'bank': 0},
-            'Orchestral harp': {'program': 46, 'bank': 0},
-            'Timpani': {'program': 47, 'bank': 0},
-            'String ensemble 01': {'program': 48, 'bank': 0},
-            'String ensemble 02': {'program': 49, 'bank': 0},
-            'Synth strings 01': {'program': 50, 'bank': 0},
-            'Synth strings 02': {'program': 51, 'bank': 0},
-            'Choir aahs': {'program': 52, 'bank': 0},
-            'Voice oohs': {'program': 53, 'bank': 0},
-            'Synth voice': {'program': 54, 'bank': 0},
-            'Orchestra hit': {'program': 55, 'bank': 0},
-            'Trumpet': {'program': 56, 'bank': 0},
-            'Trombone': {'program': 57, 'bank': 0},
-            'Tuba': {'program': 58, 'bank': 0},
-            'Muted trumpet': {'program': 59, 'bank': 0},
-            'French horn': {'program': 60, 'bank': 0},
-            'Brass section': {'program': 61, 'bank': 0},
-            'Synth brass 01': {'program': 62, 'bank': 0},
-            'Synth brass 02': {'program': 63, 'bank': 0},
-            'Soprano saxophone': {'program': 64, 'bank': 0},
-            'Alto saxophone': {'program': 65, 'bank': 0},
-            'Tenor saxophone': {'program': 66, 'bank': 0},
-            'Baritone saxophone': {'program': 67, 'bank': 0},
-            'Oboe': {'program': 68, 'bank': 0},
-            'English horn': {'program': 69, 'bank': 0},
-            'Bassoon': {'program': 70, 'bank': 0},
-            'Clarinet': {'program': 71, 'bank': 0},
-            'Piccolo': {'program': 72, 'bank': 0},
-            'Flute': {'program': 73, 'bank': 0},
-            'Recorder': {'program': 74, 'bank': 0},
-            'Pan flute': {'program': 75, 'bank': 0},
-            'Blown bottle': {'program': 76, 'bank': 0},
-            'Shakuhachi': {'program': 77, 'bank': 0},
-            'Whistle': {'program': 78, 'bank': 0},
-            'Ocarina': {'program': 79, 'bank': 0},
-            'Standard drum kit': {'program': 0, 'bank': 128},
+            'program': preset['program'],
+            'bank': preset['bank'],
+            'soundfont': 'CrisisGeneralMidi301.sf2'  # 기본 사운드폰트
         }
 
     def get_instrument_info(self, instrument_name):
@@ -172,7 +94,7 @@ class AudioProcessingService:
             instrument_info = self.get_instrument_info(instrument)
             fluidsynth_command.extend([
                 f'--gain', '1',
-                f'--channel-type', 'melody',
+                f'--channel-type', 'melody' if track != 'drums' else 'drums',
                 f'--bank', str(instrument_info['bank']),
                 f'--program', str(instrument_info['program']),
             ])
@@ -219,47 +141,6 @@ class AudioProcessingService:
             soundfont_paths.add(os.path.join(self.soundfont_dir, soundfont))
         
         soundfont_paths = list(soundfont_paths)  # set을 list로 변환
-        
-        fluidsynth_command = [
-            'fluidsynth',
-            '-ni',
-            '-g', '1',  # gain 설정
-            '-F', output_path,
-            '-O', 's16',  # 16-bit output
-            *soundfont_paths,
-            midi_path
-        ]
-
-        try:
-            self.logger.info(f"FluidSynth 실행 명령어: {' '.join(fluidsynth_command)}")
-            result = subprocess.run(fluidsynth_command, check=True, capture_output=True, text=True)
-            self.logger.info(f"FluidSynth 출력: {result.stdout}")
-        except subprocess.CalledProcessError as e:
-            self.logger.error(f"FluidSynth 실행 중 오류 발생: {e}")
-            self.logger.error(f"FluidSynth 오류 출력: {e.stderr}")
-            raise
-
-        return output_path
-    
-    def midi_to_wav_multi_instrument(self, midi_path, output_path, instruments):
-        """
-        MIDI 파일을 WAV로 변환하며, 여러 악기의 사운드폰트를 사용합니다.
-
-        Args:
-            midi_path (str): 입력 MIDI 파일 경로
-            output_path (str): 출력 WAV 파일 경로
-            instruments (dict): 각 파트별 선택된 악기
-
-        Returns:
-            str: 생성된 WAV 파일의 경로
-        """
-        soundfont_paths = [
-            os.path.join(self.soundfont_dir, self.get_instrument_program(instruments.get('melody', 'piano'))),
-            os.path.join(self.soundfont_dir, self.get_instrument_program(instruments.get('bass', 'acoustic_bass'))),
-            os.path.join(self.soundfont_dir, 'muldjordkit-20201018.sf2')  # 드럼은 항상 muldjordkit 사용
-        ]
-        
-        soundfont_paths_str = ','.join(soundfont_paths)
         
         fluidsynth_command = [
             'fluidsynth',

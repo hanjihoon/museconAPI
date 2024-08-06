@@ -1,0 +1,387 @@
+Grand piano:
+  program: 0
+  bank: 0
+Bright grand piano:
+  program: 1
+  bank: 0
+Electric grand piano:
+  program: 2
+  bank: 0
+Honky tonk:
+  program: 3
+  bank: 0
+Electric piano 1:
+  program: 4
+  bank: 0
+Electric piano 2:
+  program: 5
+  bank: 0
+Harpsichord:
+  program: 6
+  bank: 0
+Clavinet:
+  program: 7
+  bank: 0
+Celesta:
+  program: 8
+  bank: 0
+Glockenspiel:
+  program: 9
+  bank: 0
+Music box:
+  program: 10
+  bank: 0
+Vibraphone:
+  program: 11
+  bank: 0
+Marimba:
+  program: 12
+  bank: 0
+Xylophone:
+  program: 13
+  bank: 0
+Tubular bells:
+  program: 14
+  bank: 0
+Dulcimer:
+  program: 15
+  bank: 0
+Hammond organ:
+  program: 16
+  bank: 0
+Percussive organ:
+  program: 17
+  bank: 0
+Rock organ:
+  program: 18
+  bank: 0
+Church organ:
+  program: 19
+  bank: 0
+Reed organ:
+  program: 20
+  bank: 0
+Accordion:
+  program: 21
+  bank: 0
+Harmonica:
+  program: 22
+  bank: 0
+Tango accordion:
+  program: 23
+  bank: 0
+Nylon guitar:
+  program: 24
+  bank: 0
+Steel guitar:
+  program: 25
+  bank: 0
+Jazz guitar:
+  program: 26
+  bank: 0
+Clean guitar:
+  program: 27
+  bank: 0
+Muted guitar:
+  program: 28
+  bank: 0
+Overdriven guitar:
+  program: 29
+  bank: 0
+Distorted guitar:
+  program: 30
+  bank: 0
+Guitar harmonics:
+  program: 31
+  bank: 0
+Acoustic bass:
+  program: 32
+  bank: 0
+Finger bass:
+  program: 33
+  bank: 0
+Pick bass:
+  program: 34
+  bank: 0
+Fretless bass:
+  program: 35
+  bank: 0
+Slap bass 1:
+  program: 36
+  bank: 0
+Slap bass 2:
+  program: 37
+  bank: 0
+Synth bass 1:
+  program: 38
+  bank: 0
+Synth bass 2:
+  program: 39
+  bank: 0
+Violin:
+  program: 40
+  bank: 0
+Viola:
+  program: 41
+  bank: 0
+Cello:
+  program: 42
+  bank: 0
+Contrabass:
+  program: 43
+  bank: 0
+Tremolo strings:
+  program: 44
+  bank: 0
+Pizzicato strings:
+  program: 45
+  bank: 0
+Orchestral harp:
+  program: 46
+  bank: 0
+Timpani:
+  program: 47
+  bank: 0
+String ensemble 1:
+  program: 48
+  bank: 0
+String ensemble 2:
+  program: 49
+  bank: 0
+Synth strings 1:
+  program: 50
+  bank: 0
+Synth strings 2:
+  program: 51
+  bank: 0
+Choir aahs:
+  program: 52
+  bank: 0
+Voice oohs:
+  program: 53
+  bank: 0
+Synth voice:
+  program: 54
+  bank: 0
+Orchestra hit:
+  program: 55
+  bank: 0
+Trumpet:
+  program: 56
+  bank: 0
+Trombone:
+  program: 57
+  bank: 0
+Tuba:
+  program: 58
+  bank: 0
+Muted trumpet:
+  program: 59
+  bank: 0
+French horn:
+  program: 60
+  bank: 0
+Brass section:
+  program: 61
+  bank: 0
+Synth brass 1:
+  program: 62
+  bank: 0
+Synth brass 2:
+  program: 63
+  bank: 0
+Soprano saxophone:
+  program: 64
+  bank: 0
+Alto saxophone:
+  program: 65
+  bank: 0
+Tenor saxophone:
+  program: 66
+  bank: 0
+Baritone saxophone:
+  program: 67
+  bank: 0
+Oboe:
+  program: 68
+  bank: 0
+English horn:
+  program: 69
+  bank: 0
+Bassoon:
+  program: 70
+  bank: 0
+Clarinet:
+  program: 71
+  bank: 0
+Piccolo:
+  program: 72
+  bank: 0
+Flute:
+  program: 73
+  bank: 0
+Recorder:
+  program: 74
+  bank: 0
+Pan flute:
+  program: 75
+  bank: 0
+Blown bottle:
+  program: 76
+  bank: 0
+Shakuhachi:
+  program: 77
+  bank: 0
+Whistle:
+  program: 78
+  bank: 0
+Ocarina:
+  program: 79
+  bank: 0
+Lead 1 (square):
+  program: 80
+  bank: 0
+Lead 2 (sawtooth):
+  program: 81
+  bank: 0
+Lead 3 (calliope):
+  program: 82
+  bank: 0
+Lead 4 (chiff):
+  program: 83
+  bank: 0
+Lead 5 (charang):
+  program: 84
+  bank: 0
+Lead 6 (voice):
+  program: 85
+  bank: 0
+Lead 7 (fifths):
+  program: 86
+  bank: 0
+Lead 8 (bass + lead):
+  program: 87
+  bank: 0
+Pad 1 (new age):
+  program: 88
+  bank: 0
+Pad 2 (warm):
+  program: 89
+  bank: 0
+Pad 3 (polysynth):
+  program: 90
+  bank: 0
+Pad 4 (choir):
+  program: 91
+  bank: 0
+Pad 5 (bowed):
+  program: 92
+  bank: 0
+Pad 6 (metallic):
+  program: 93
+  bank: 0
+Pad 7 (halo):
+  program: 94
+  bank: 0
+Pad 8 (sweep):
+  program: 95
+  bank: 0
+FX 1 (rain):
+  program: 96
+  bank: 0
+FX 2 (soundtrack):
+  program: 97
+  bank: 0
+FX 3 (crystal):
+  program: 98
+  bank: 0
+FX 4 (atmosphere):
+  program: 99
+  bank: 0
+FX 5 (brightness):
+  program: 100
+  bank: 0
+FX 6 (goblins):
+  program: 101
+  bank: 0
+FX 7 (echoes):
+  program: 102
+  bank: 0
+FX 8 (sci-fi):
+  program: 103
+  bank: 0
+Sitar:
+  program: 104
+  bank: 0
+Banjo:
+  program: 105
+  bank: 0
+Shamisen:
+  program: 106
+  bank: 0
+Koto:
+  program: 107
+  bank: 0
+Kalimba:
+  program: 108
+  bank: 0
+Bagpipe:
+  program: 109
+  bank: 0
+Fiddle:
+  program: 110
+  bank: 0
+Shanai:
+  program: 111
+  bank: 0
+Tinkle bell:
+  program: 112
+  bank: 0
+Agogo:
+  program: 113
+  bank: 0
+Steel drums:
+  program: 114
+  bank: 0
+Woodblock:
+  program: 115
+  bank: 0
+Taiko drum:
+  program: 116
+  bank: 0
+Melodic tom:
+  program: 117
+  bank: 0
+Synth drum:
+  program: 118
+  bank: 0
+Reverse cymbal:
+  program: 119
+  bank: 0
+Guitar fret noise:
+  program: 120
+  bank: 0
+Breath noise:
+  program: 121
+  bank: 0
+Seashore:
+  program: 122
+  bank: 0
+Bird tweet:
+  program: 123
+  bank: 0
+Telephone ring:
+  program: 124
+  bank: 0
+Helicopter:
+  program: 125
+  bank: 0
+Applause:
+  program: 126
+  bank: 0
+Gunshot:
+  program: 127
+  bank: 0
+Standard drum kit:
+  program: 0
+  bank: 128
